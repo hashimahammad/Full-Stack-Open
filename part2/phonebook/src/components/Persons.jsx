@@ -10,7 +10,7 @@ const Persons = ({ persons, search }) => {
     <div>
       {filteredPersons.map((person) => (
         <div key={person.id}>
-          {person.name} {person.phone}
+          {person.name} {person.number}
         </div>
       ))}
     </div>
