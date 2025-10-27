@@ -3,8 +3,8 @@ import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
 import Filter from './components/Filter'
 import {useEffect} from 'react'
-import axios from 'axios'
-
+import personService from './services/Persons'
+import Notification from './components/Notification'
 const App = () => {
   const [persons, setPersons] = useState([]) 
 
@@ -14,49 +14,65 @@ const App = () => {
 
   const [filterName,setFilterName] = useState('')
 
-  useEffect(()=>{
-    axios
-    .get('http://localhost:3001/persons')
-    .then(response=> {
-      const data = response.data
-      setPersons(data)
-      console.log(data);     
-    })
+  const [msg,setMsg] = useState('')
+
+  const [msgType, setMsgType] = useState("success")
+
+  useEffect(()=> {
+    personService
+    .getAll().
+    then(data=> setPersons(data))
   },[])
 
   const handleSearch = (e)=>{
     setFilterName(e.target.value)
   }
 
+  const showMessage = (message, type) => {
+  setMsg(message)
+  setMsgType(type)
+  setTimeout(() => {
+    setMsg(null)
+  }, 4000)
+}
+
   const addPerson = (e)=>{
     e.preventDefault()
-    if(persons.some((person)=> person.name === newName)){
-      console.log('inside this logic');
-      
-      alert(`${newName} is already added to phonebook`)
+    const existingPerson = persons.find(person => person.name === newName)
+
+    if(existingPerson){
+      if(window.confirm('update the number?'))
+      {
+        existingPerson.number = newPhone
+        personService.update(existingPerson.id,existingPerson)
+        .then((response) => {
+          setPersons(
+            persons.map((p) => p.id === response.id ? response : p)
+          )
+          showMessage(`Updated ${response.name}'s number to ${response.number}`, "success")
+        })
+        .catch(() => showMessage(`Failed to update ${newName} because its been removed from server`, "error"))
+      }
     }
     else{
-    let copyNewPerson = persons.concat({name:newName,id:Date.now(),number:newPhone})
-    console.log(newName);
-    setPersons(copyNewPerson)
-    setNewName('')
-    setNewPhone('')
+      let newPerson = {name:newName,number:newPhone}
+      console.log(newName);
+      personService.create(newPerson)
+      .then((data) => {
+        setPersons(persons.concat(data))
+        showMessage(`Added ${newName}`, "success")
+        setNewName("")
+        setNewPhone("") 
+      })
+      .catch(() => showMessage(`Failed to add ${newName}`, "error"))
     }
         
-  }
-
-  const handleChange = (e)=>{
-    //console.log(e.target.value);
-    setNewName(e.target.value)
-  }
-
-  const handlePhone = (e)=>{
-    setNewPhone(e.target.value)
   }
 
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={msg} css={msgType}></Notification>
 
       <Filter filterName={filterName} handleSearch={handleSearch}></Filter>
 
@@ -72,7 +88,7 @@ const App = () => {
 
       <h3>Numbers</h3>
 
-      <Persons persons={persons} search={filterName}></Persons>
+      <Persons persons={persons} search={filterName} setPersons={setPersons}></Persons>
 
     </div>
   )

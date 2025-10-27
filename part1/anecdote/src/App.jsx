@@ -10,6 +10,7 @@ const Button = ({handleClick,text}) => <button onClick={handleClick}>{text}</but
 
 
 
+
 const App = () => {
   const anecdotes = [
     'If it hurts, do it more often.',
