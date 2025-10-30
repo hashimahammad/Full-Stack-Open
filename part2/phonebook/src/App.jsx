@@ -5,6 +5,7 @@ import Filter from './components/Filter'
 import {useEffect} from 'react'
 import personService from './services/Persons'
 import Notification from './components/Notification'
+
 const App = () => {
   const [persons, setPersons] = useState([]) 
 
