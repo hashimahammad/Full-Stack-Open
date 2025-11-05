@@ -62,7 +62,6 @@ test('post method adds one post and checks if the total count increased by one',
 
 })
 
-
 test('default likes value is 0 if likes property is missing', async () => {
   const newBlog = {
     title: 'Blog without likes',
@@ -100,6 +99,36 @@ test('expects bad request if url or title is missing in blog object', async () =
     .post('/api/blogs')
     .send(newBlogWithoutUrl)
     .expect(400)
+})
+
+test('deleting one blog reduces count by one', async () => {
+
+  const blogsAtStart = await api.get('/api/blogs').expect(200)
+  const blogToDelete = blogsAtStart.body[0]
+
+  await api
+    .delete(`/api/blogs/${blogToDelete.id}`)
+    .expect(204)
+
+  const blogsAtEnd = await api.get('/api/blogs').expect(200)
+
+  assert.strictEqual(blogsAtEnd.body.length, blogsAtStart.body.length - 1)
+})
+
+test('testing the updation of likes', async () => {
+  let newLikes = 9
+  const allBlogs = await helper.blogsInDb()
+  const toUpdateBlog = allBlogs[0]
+
+  const update = { likes: newLikes }
+
+  const response = await api
+    .put(`/api/blogs/${toUpdateBlog.id}`)
+    .send(update)
+    .expect(200)
+    .expect('Content-Type', /application\/json/)
+
+  assert.strictEqual(response.body.likes, newLikes)
 })
 
 after(async () => {
