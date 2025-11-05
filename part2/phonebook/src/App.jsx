@@ -65,7 +65,10 @@ const App = () => {
         setNewName("")
         setNewPhone("") 
       })
-      .catch(() => showMessage(`Failed to add ${newName}`, "error"))
+      .catch((error) => {
+        console.log(error.response.data.error)
+        showMessage(error.response.data.error, "error")
+      })
     }
         
   }
