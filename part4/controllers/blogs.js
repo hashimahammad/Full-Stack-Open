@@ -1,36 +1,20 @@
 const blogRouter = require('express').Router()
 const Blog = require('../models/blog')
-const User = require('../models/user')
-const jwt = require('jsonwebtoken')
-
-const getToken = request=>{
-  const authorization = request.get('authorization')
-  if(authorization && authorization.startsWith('Bearer ')){
-    return authorization.replace('Bearer ', '')
-  }
-  return null
-}
+const { userExtractor } = require('../utils/middleware')
 
 blogRouter.get('/', async (request, response) => {
   const blogs = await Blog.find({}).populate('user', { username: 1, name: 1 })
   response.status(200).json(blogs)
 })
 
-blogRouter.post('/', async (request, response) => {
+blogRouter.post('/', userExtractor, async (request, response) => {
 
-  const decodedToken = jwt.verify(getToken(request),process.env.SECRET)
-  if(!decodedToken.id){
-    return response.status(401).json({ error: 'invalid token' })
-  }
-
-  const user
-
-  const body = request.body
-
-  // const user = await User.findOne()
+  const user = request.user
   if (!user) {
     return response.status(400).json({ error: 'No users exist yet' })
   }
+
+  const body = request.body
 
   if (!body.title || !body.url) {
     return response.status(400).json({ error: 'title or url missing' })
@@ -52,11 +36,26 @@ blogRouter.post('/', async (request, response) => {
   response.status(201).json(savedBlog)
 })
 
-blogRouter.delete('/:id', async (request, response) => {
-  const id = request.params.id
-  await Blog.findByIdAndDelete(id)
-  response.status(204).end()
+blogRouter.delete('/:id', userExtractor, async (request, response) => {
+
+  const user = request.user
+  if (!user) {
+    return response.status(401).json({ error: 'token missing or invalid' })
+  }
+
+  const blog = await Blog.findById(request.params.id)
+  if (!blog) {
+    return response.status(404).json({ error: 'blog not found' })
+  }
+
+  if (blog.user.toString() !== user._id.toString()) {
+    return response.status(401).json({ error: 'not authorized to delete this blog' })
+  }
+
+  await Blog.findByIdAndDelete(request.params.id)
+  return response.status(204).end()
 })
+
 
 blogRouter.put('/:id', async (request, response) => {
   const id = request.params.id
